@@ -16,7 +16,7 @@ db.connect(err => {
         console.log('Berhasil konek ke database GlowList');
     }
 });
-const PORT = 3001;
+const PORT = 5000;
 
 app.use(express.json());
 
