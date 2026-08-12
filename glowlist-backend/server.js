@@ -49,8 +49,8 @@ app.get('/kategori', (req, res) => {
 app.post('/produk', (req, res) => {
     const { judul, deskripsi, harga, id_kategori } = req.body;
 
-    if (!judul || !harga) {
-        return res.status(400).json({ message: 'Judul dan harga wajib diisi' });
+    if (!judul || !harga ||!deskripsi) {
+        return res.status(400).json({ message: 'Judul, harga dan deskripsi wajib diisi' });
     }
 
     const sql = 'INSERT INTO produk (judul, deskripsi, harga, id_kategori, tgl_input) VALUES (?, ?, ?, ?, NOW())';
