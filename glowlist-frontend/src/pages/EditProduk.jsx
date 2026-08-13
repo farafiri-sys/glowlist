@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 
-export default function AddProduk() {
-    const [kategori, setKategori] = useState([])
+export default function EditProduk() {
+    const { id } = useParams();
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
         judul: "",
@@ -10,6 +10,25 @@ export default function AddProduk() {
         harga: "",
         id_kategori: "",
     });
+    const [loading, setLoading] = useState(true);
+    const [kategori, setKategori] = useState([]);
+
+    useEffect(() => {
+        fetch(`http://localhost:5000/produk/${id}`)
+            .then((res) => res.json())
+            .then((data) => {
+                setFormData(data[0]);
+                setLoading(false);
+            })
+            .catch((err) => console.error(err));
+
+        fetch("http://localhost:5000/kategori")
+            .then((res) => res.json())
+            .then((data) => {
+                setKategori(data);
+            })
+            .catch((err) => console.error(err));
+    }, [id]);
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -17,53 +36,31 @@ export default function AddProduk() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        try {
-            const res = await fetch("http://localhost:5000/produk", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(formData),
-            });
-            if (res.ok) {
-                alert("Produk berhasil ditambahkan!");
-                navigate("/produk");
-            } else {
-                const data = await res.json();
-                alert(data.message || "Gagal menambah produk");
-            }
-        } catch (err) {
-            console.error("Error:", err);
-            alert("Terjadi kesalahan saat menambah produk");
-        }
+        await fetch(`http://localhost:5000/produk/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(formData),
+        });
+        alert("Yakin mau menyimpan perubahan ini?");
+        navigate("/produk");
     };
 
-    useEffect(() => {
-        const getKategori = async () => {
-            try {
-                const res = await fetch("http://localhost:5000/kategori");
-                const data = await res.json();
-                setKategori(data);
-            } catch (err) {
-                console.error("Gagal mengambil kategori:", err);
-            }
-        };
-
-        getKategori();
-    }, []);
+    if (loading) {
+        return <div className="container mt-4">Loading...</div>;
+    }
 
     return (
         <div className="container mt-4">
-            <h2 className="mb-3">Tambah Produk</h2>
-            <form onSubmit={handleSubmit} className="card p-4 shadow-sm">
+            <h2>Edit Produk</h2>
+            <form onSubmit={handleSubmit} className="mt-3">
                 <div className="mb-3">
-                    <label className="form-label">Judul Produk</label>
+                    <label className="form-label">Judul</label>
                     <input
                         type="text"
                         name="judul"
                         value={formData.judul}
                         onChange={handleChange}
                         className="form-control"
-                        placeholder="Masukkan nama produk"
-                        required
                     />
                 </div>
 
@@ -74,7 +71,6 @@ export default function AddProduk() {
                         value={formData.deskripsi}
                         onChange={handleChange}
                         className="form-control"
-                        placeholder="Masukkan deskripsi produk"
                     ></textarea>
                 </div>
 
@@ -86,8 +82,6 @@ export default function AddProduk() {
                         value={formData.harga}
                         onChange={handleChange}
                         className="form-control"
-                        placeholder="Masukkan harga"
-                        required
                     />
                 </div>
 
@@ -98,7 +92,6 @@ export default function AddProduk() {
                         value={formData.id_kategori}
                         onChange={handleChange}
                         className="form-select"
-                        required
                     >
                         <option value="">Pilih Kategori</option>
 
@@ -110,9 +103,9 @@ export default function AddProduk() {
                     </select>
 
                 </div>
-
-                <button type="submit" className="btn btn-success">Simpan</button>
+                <button type="submit" className="btn btn-success me-2">Simpan Perubahan</button>
             </form>
         </div>
     );
 }
+
