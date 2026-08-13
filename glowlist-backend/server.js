@@ -74,6 +74,9 @@ app.put('/produk/:id_produk', (req, res) => {
     const sql = 'UPDATE produk SET judul=?, deskripsi=?, harga=?, id_kategori=? WHERE id_produk=?';
     db.query(sql, [judul, deskripsi, harga, id_kategori, id_produk], (err, result) => {
         if (err) return res.status(500).json({ error: err.sqlMessage });
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Produk tidak ditemukan' });
+        }
         res.json({ message: 'Produk berhasil diupdate!' });
     });
 });
@@ -83,6 +86,9 @@ app.delete('/produk/:id_produk', (req, res) => {
     const sql = 'DELETE FROM produk WHERE id_produk = ?';
     db.query(sql, [id_produk], (err, result) => {
         if (err) return res.status(500).json({ error: err.sqlMessage });
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Produk tidak ditemukan' });
+        }
         res.json({ message: 'Produk berhasil dihapus!' });
     });
 });
