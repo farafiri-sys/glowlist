@@ -12,6 +12,7 @@ export default function EditProduk() {
     });
     const [loading, setLoading] = useState(true);
     const [kategori, setKategori] = useState([]);
+    const [fileBaru, setFileBaru] = useState(null);
 
     useEffect(() => {
         fetch(`http://localhost:5000/produk/${id}`)
@@ -36,15 +37,29 @@ export default function EditProduk() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (fileBaru && fileBaru.size > 2 * 1024 * 1024) {
+            alert("Ukuran file terlalu besar, maksimal 2MB");
+            return;
+        }
+
+        const data = new FormData();
+        data.append("judul", formData.judul);
+        data.append("deskripsi", formData.deskripsi);
+        data.append("harga", formData.harga);
+        data.append("id_kategori", formData.id_kategori);
+        if (fileBaru) {
+            data.append("file", fileBaru);
+        }
+
         if (window.confirm("Yakin ingin menyimpan perubahan ini?")) {
             try {
                 const res = await fetch(`http://localhost:5000/produk/${id}`, {
                     method: "PUT",
                     headers: {
-                        "Content-Type": "application/json",
                         Authorization: `Bearer ${localStorage.getItem("token")}`,
                     },
-                    body: JSON.stringify(formData),
+                    body: data,
                 });
                 if (res.ok) {
                     alert("Produk berhasil diperbarui!");
@@ -115,6 +130,31 @@ export default function EditProduk() {
                             </option>
                         ))}
                     </select>
+
+                    <div className="mb-3">
+                        <label className="form-label">Foto Saat Ini</label>
+                        <div>
+                            {formData.nama_file ? (
+                                <img
+                                    src={`http://localhost:5000/uploads/${formData.nama_file}`}
+                                    alt="Foto lama"
+                                    style={{ width: "120px", borderRadius: "8px" }}
+                                />
+                            ) : (
+                                <p>Tidak ada foto</p>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="mb-3">
+                        <label className="form-label">Ganti Foto (opsional)</label>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            className="form-control"
+                            onChange={(e) => setFileBaru(e.target.files[0])}
+                        />
+                    </div>
 
                 </div>
                 <button type="submit" className="btn btn-success me-2">Simpan Perubahan</button>
