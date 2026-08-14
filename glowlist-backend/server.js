@@ -5,7 +5,10 @@ const mysql = require('mysql2');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const saltRounds = 10;
-const authJWT=require('./middleware');
+const authJWT = require('./middleware');
+const path = require('path');
+const multer = require('multer');
+const PORT = 5000;
 
 const db = mysql.createConnection({
     host: 'localhost',
@@ -21,7 +24,19 @@ db.connect(err => {
         console.log('Berhasil konek ke database GlowList');
     }
 });
-const PORT = 5000;
+
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'uploads/');
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        cb(null, uniqueSuffix + '-' + file.originalname);
+    },
+});
+const uploads = multer({ storage: storage });
 
 app.use(cors());
 app.use(express.json());
@@ -93,17 +108,17 @@ app.post('/pengguna', async (req, res) => {
     }
 });
 
-app.get('/pengguna/me', authJWT, (req, res)=>{
-    const id=req.user.id;
+app.get('/pengguna/me', authJWT, (req, res) => {
+    const id = req.user.id;
 
-    const sql ='SELECT id_pengguna, nama, email, no_hp FROM pengguna WHERE id_pengguna=?';
-    db.query(sql, [id], (err, result)=>{
-        if (err){
-            return res.status(500).json({error: err.sqlMessage});
+    const sql = 'SELECT id_pengguna, nama, email, no_hp FROM pengguna WHERE id_pengguna=?';
+    db.query(sql, [id], (err, result) => {
+        if (err) {
+            return res.status(500).json({ error: err.sqlMessage });
         }
 
-        if (result.length === 0){
-            return res.status(404).json({message:'Pengguna tidak ditemukan'});
+        if (result.length === 0) {
+            return res.status(404).json({ message: 'Pengguna tidak ditemukan' });
         }
 
         res.json(result[0]);
@@ -135,15 +150,16 @@ app.get('/kategori', (req, res) => {
     });
 });
 
-app.post('/produk', (req, res) => {
+app.post('/produk', uploads.single('file'), (req, res) => {
     const { judul, deskripsi, harga, id_kategori } = req.body;
+    const nama_file = req.file ? req.file.filename : null;
 
     if (!judul || !harga || !deskripsi) {
         return res.status(400).json({ message: 'Judul, harga dan deskripsi wajib diisi' });
     }
 
-    const sql = 'INSERT INTO produk (judul, deskripsi, harga, id_kategori, tgl_input) VALUES (?, ?, ?, ?, NOW())';
-    db.query(sql, [judul, deskripsi, harga, id_kategori], (err, result) => {
+    const sql = 'INSERT INTO produk (judul, deskripsi, harga, id_kategori, nama_file, tgl_input) VALUES (?, ?, ?, ?, ?, NOW())';
+    db.query(sql, [judul, deskripsi, harga, id_kategori, nama_file], (err, result) => {
         if (err) return res.status(500).json({ error: err.sqlMessage });
         res.json({
             message: 'Produk berhasil ditambahkan!',
@@ -152,7 +168,7 @@ app.post('/produk', (req, res) => {
     });
 });
 
-app.put('/produk/:id_produk', authJWT, (req, res) => {
+app.put('/produk/:id_produk', authJWT, uploads.single('file'), (req, res) => {
     const { id_produk } = req.params;
     const { judul, deskripsi, harga, id_kategori } = req.body;
 
@@ -160,14 +176,21 @@ app.put('/produk/:id_produk', authJWT, (req, res) => {
         return res.status(400).json({ message: 'Judul dan harga wajib diisi' });
     }
 
-    const sql = 'UPDATE produk SET judul=?, deskripsi=?, harga=?, id_kategori=? WHERE id_produk=?';
-    db.query(sql, [judul, deskripsi, harga, id_kategori, id_produk], (err, result) => {
+    const cekSql = 'SELECT nama_file FROM produk WHERE id_produk =?';
+    db.query(cekSql, [id_produk], (err, result) => {
         if (err) return res.status(500).json({ error: err.sqlMessage });
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ message: 'Produk tidak ditemukan' });
-        }
-        res.json({ message: 'Produk berhasil diupdate!' });
-    });
+
+        const nama_file = req.file ? req.file.filename : result[0].nama_file;
+
+        const sql = 'UPDATE produk SET judul=?, deskripsi=?, harga=?, id_kategori=?, nama_file=? WHERE id_produk=?';
+        db.query(sql, [judul, deskripsi, harga, id_kategori, nama_file, id_produk], (err, result) => {
+            if (err) return res.status(500).json({ error: err.sqlMessage });
+            if (result.affectedRows === 0) {
+                return res.status(404).json({ message: 'Produk tidak ditemukan' });
+            }
+            res.json({ message: 'Produk berhasil diupdate!' });
+        });
+    })
 });
 
 app.delete('/produk/:id_produk', authJWT, (req, res) => {

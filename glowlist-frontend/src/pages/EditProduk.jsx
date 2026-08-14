@@ -36,18 +36,32 @@ export default function EditProduk() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        await fetch(`http://localhost:5000/produk/${id}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(formData),
-        });
-        alert("Yakin mau menyimpan perubahan ini?");
-        navigate("/produk");
+        if (window.confirm("Yakin ingin menyimpan perubahan ini?")) {
+            try {
+                const res = await fetch(`http://localhost:5000/produk/${id}`, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${localStorage.getItem("token")}`,
+                    },
+                    body: JSON.stringify(formData),
+                });
+                if (res.ok) {
+                    alert("Produk berhasil diperbarui!");
+                    navigate("/produk");
+                } else {
+                    const data = await res.json();
+                    alert(data.message || "Gagal merubah produk");
+                }
+            } catch (err) {
+                console.error("Error:", err);
+                alert("Terjadi kesalahan saat merubah produk");
+            }
+        }
     };
-
     if (loading) {
         return <div className="container mt-4">Loading...</div>;
-    }
+    };
 
     return (
         <div className="container mt-4">
@@ -107,5 +121,8 @@ export default function EditProduk() {
             </form>
         </div>
     );
-}
+
+
+};
+
 
